@@ -1,0 +1,15 @@
+﻿# ignore node_modules anywhere
+**/node_modules/
+
+# builds
+**/dist/
+**/build/
+**/.vite/
+
+# env
+*.env
+**/.env
+
+# editor & OS
+.vscode/
+.DS_Store
