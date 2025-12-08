@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserPlus, Calendar, ClipboardList } from "lucide-react";
+import { UserPlus, Calendar, ClipboardList, User } from "lucide-react";
 import { api } from "../../api";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -12,6 +12,13 @@ const ReceptionistDashboard = ({ user, activeTab }) => {
     email: "",
     phone: "",
     password: "123",
+  });
+
+  // Profile State
+  const [profileData, setProfileData] = useState({
+    firstName: user.first_name,
+    lastName: user.last_name,
+    phone: user.phone || "",
   });
 
   useEffect(() => {
@@ -36,6 +43,72 @@ const ReceptionistDashboard = ({ user, activeTab }) => {
       alert("Error registering");
     }
   };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    try {
+      await api.updateProfile(user.id, {
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        phone: profileData.phone,
+      });
+      alert("Profile updated successfully!");
+    } catch (err) {
+      alert("Error updating profile");
+    }
+  };
+
+  const renderProfile = () => (
+    <div className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm max-w-2xl mx-auto">
+      <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+        <User className="text-blue-600" /> Manage Profile
+      </h2>
+      <form onSubmit={handleUpdateProfile} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm mb-1 block">First Name</label>
+            <Input
+              value={profileData.firstName}
+              onChange={(e) =>
+                setProfileData({ ...profileData, firstName: e.target.value })
+              }
+              required
+            />
+          </div>
+          <div>
+            <label className="text-sm mb-1 block">Last Name</label>
+            <Input
+              value={profileData.lastName}
+              onChange={(e) =>
+                setProfileData({ ...profileData, lastName: e.target.value })
+              }
+              required
+            />
+          </div>
+        </div>
+        <div>
+          <label className="text-sm mb-1 block">Phone</label>
+          <Input
+            value={profileData.phone}
+            onChange={(e) =>
+              setProfileData({ ...profileData, phone: e.target.value })
+            }
+          />
+        </div>
+        <div>
+          <label className="text-sm mb-1 block">Email</label>
+          <Input
+            value={user.email}
+            disabled
+            className="bg-slate-50 cursor-not-allowed"
+          />
+        </div>
+        <Button type="submit" className="w-full">
+          Update Profile
+        </Button>
+      </form>
+    </div>
+  );
 
   return (
     <div className="p-8">
@@ -92,11 +165,7 @@ const ReceptionistDashboard = ({ user, activeTab }) => {
         </div>
       )}
 
-      {activeTab === "Profile" && (
-        <div className="p-4 bg-white rounded border">
-          Profile Management (Coming Soon)
-        </div>
-      )}
+      {activeTab === "Profile" && renderProfile()}
     </div>
   );
 };

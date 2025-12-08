@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserPlus, UserCheck, Trash2, X } from "lucide-react";
+import { UserPlus, UserCheck, Trash2, X, User } from "lucide-react";
 import { api } from "../../api";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -23,6 +23,13 @@ const AdminDashboard = ({ user, activeTab }) => {
     email: "",
     password: "",
     specialty: "",
+  });
+
+  // Profile State
+  const [profileData, setProfileData] = useState({
+    firstName: user.first_name,
+    lastName: user.last_name,
+    phone: user.phone || "",
   });
 
   const fetchData = async () => {
@@ -58,10 +65,7 @@ const AdminDashboard = ({ user, activeTab }) => {
   const handleSaveUser = async (e) => {
     e.preventDefault();
     try {
-      await api.register({
-        ...formData,
-        role: modalRole,
-      });
+      await api.register({ ...formData, role: modalRole });
       alert(`${modalRole} created successfully!`);
       setShowModal(false);
       fetchData();
@@ -74,6 +78,20 @@ const AdminDashboard = ({ user, activeTab }) => {
     if (confirm("Delete this user?")) {
       await api.deleteUser(id);
       fetchData();
+    }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    try {
+      await api.updateProfile(user.id, {
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        phone: profileData.phone,
+      });
+      alert("Profile updated successfully!");
+    } catch (err) {
+      alert("Error updating profile");
     }
   };
 
@@ -123,6 +141,58 @@ const AdminDashboard = ({ user, activeTab }) => {
     </div>
   );
 
+  const renderProfile = () => (
+    <div className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm max-w-2xl mx-auto">
+      <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+        <User className="text-blue-600" /> Manage Profile
+      </h2>
+      <form onSubmit={handleUpdateProfile} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm mb-1 block">First Name</label>
+            <Input
+              value={profileData.firstName}
+              onChange={(e) =>
+                setProfileData({ ...profileData, firstName: e.target.value })
+              }
+              required
+            />
+          </div>
+          <div>
+            <label className="text-sm mb-1 block">Last Name</label>
+            <Input
+              value={profileData.lastName}
+              onChange={(e) =>
+                setProfileData({ ...profileData, lastName: e.target.value })
+              }
+              required
+            />
+          </div>
+        </div>
+        <div>
+          <label className="text-sm mb-1 block">Phone</label>
+          <Input
+            value={profileData.phone}
+            onChange={(e) =>
+              setProfileData({ ...profileData, phone: e.target.value })
+            }
+          />
+        </div>
+        <div>
+          <label className="text-sm mb-1 block">Email</label>
+          <Input
+            value={user.email}
+            disabled
+            className="bg-slate-50 cursor-not-allowed"
+          />
+        </div>
+        <Button type="submit" className="w-full">
+          Update Profile
+        </Button>
+      </form>
+    </div>
+  );
+
   return (
     <div className="p-8 relative">
       <h1 className="text-2xl font-bold mb-6">Admin: {activeTab}</h1>
@@ -151,106 +221,73 @@ const AdminDashboard = ({ user, activeTab }) => {
         </>
       )}
       {activeTab === "Patients" && renderList(patients)}
-      {activeTab === "Profile" && (
-        <div className="p-4 bg-white rounded border">
-          Admin Profile Management (Coming Soon)
-        </div>
-      )}
+      {activeTab === "Profile" && renderProfile()}
 
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="flex justify-between items-center p-4 border-b bg-slate-50">
               <h3 className="text-lg font-bold capitalize text-slate-800">
                 Add New {modalRole}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="text-slate-400"
               >
                 <X size={20} />
               </button>
             </div>
             <form onSubmit={handleSaveUser} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-slate-500 mb-1 block">
-                    First Name
-                  </label>
-                  <Input
-                    placeholder="John"
-                    value={formData.firstName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-slate-500 mb-1 block">
-                    Last Name
-                  </label>
-                  <Input
-                    placeholder="Doe"
-                    value={formData.lastName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-500 mb-1 block">
-                  Email Address
-                </label>
                 <Input
-                  placeholder="doctor@hospital.com"
-                  type="email"
-                  value={formData.email}
+                  placeholder="First Name"
+                  value={formData.firstName}
                   onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
+                    setFormData({ ...formData, firstName: e.target.value })
+                  }
+                  required
+                />
+                <Input
+                  placeholder="Last Name"
+                  value={formData.lastName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lastName: e.target.value })
                   }
                   required
                 />
               </div>
-              <div>
-                <label className="text-xs font-medium text-slate-500 mb-1 block">
-                  Password
-                </label>
-                <Input
-                  placeholder="••••••••"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
+              <Input
+                placeholder="Email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                required
+              />
+              <Input
+                placeholder="Password"
+                type="password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                required
+              />
               {modalRole === "doctor" && (
-                <div>
-                  <label className="text-xs font-medium text-slate-500 mb-1 block">
-                    Specialty
-                  </label>
-                  <Input
-                    placeholder="e.g. Cardiology"
-                    value={formData.specialty}
-                    onChange={(e) =>
-                      setFormData({ ...formData, specialty: e.target.value })
-                    }
-                    required
-                  />
-                </div>
+                <Input
+                  placeholder="Specialty"
+                  value={formData.specialty}
+                  onChange={(e) =>
+                    setFormData({ ...formData, specialty: e.target.value })
+                  }
+                  required
+                />
               )}
-
-              <div className="pt-2">
-                <Button type="submit" className="w-full">
-                  Create Account
-                </Button>
-              </div>
+              <Button type="submit" className="w-full">
+                Create Account
+              </Button>
             </form>
           </div>
         </div>

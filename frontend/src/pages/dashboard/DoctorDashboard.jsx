@@ -9,6 +9,13 @@ const DoctorDashboard = ({ user, activeTab }) => {
   const [slots, setSlots] = useState([]);
   const [newSlot, setNewSlot] = useState({ date: "", time: "" });
 
+  // Profile State
+  const [profileData, setProfileData] = useState({
+    firstName: user.first_name,
+    lastName: user.last_name,
+    phone: user.phone || "",
+  });
+
   const fetchData = async () => {
     if (activeTab === "Appointments" || activeTab === "My Dashboard") {
       const data = await api.getAppointments(user.id, "doctor");
@@ -41,6 +48,20 @@ const DoctorDashboard = ({ user, activeTab }) => {
   const handleDeleteSlot = async (id) => {
     await api.deleteSlot(id);
     fetchData();
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    try {
+      await api.updateProfile(user.id, {
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        phone: profileData.phone,
+      });
+      alert("Profile updated successfully!");
+    } catch (err) {
+      alert("Error updating profile");
+    }
   };
 
   const renderAppointments = () => (
@@ -80,6 +101,58 @@ const DoctorDashboard = ({ user, activeTab }) => {
       {appointments.length === 0 && (
         <p className="text-slate-400">No appointments.</p>
       )}
+    </div>
+  );
+
+  const renderProfile = () => (
+    <div className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm max-w-2xl mx-auto">
+      <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+        <User className="text-blue-600" /> Manage Profile
+      </h2>
+      <form onSubmit={handleUpdateProfile} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm mb-1 block">First Name</label>
+            <Input
+              value={profileData.firstName}
+              onChange={(e) =>
+                setProfileData({ ...profileData, firstName: e.target.value })
+              }
+              required
+            />
+          </div>
+          <div>
+            <label className="text-sm mb-1 block">Last Name</label>
+            <Input
+              value={profileData.lastName}
+              onChange={(e) =>
+                setProfileData({ ...profileData, lastName: e.target.value })
+              }
+              required
+            />
+          </div>
+        </div>
+        <div>
+          <label className="text-sm mb-1 block">Phone</label>
+          <Input
+            value={profileData.phone}
+            onChange={(e) =>
+              setProfileData({ ...profileData, phone: e.target.value })
+            }
+          />
+        </div>
+        <div>
+          <label className="text-sm mb-1 block">Email</label>
+          <Input
+            value={user.email}
+            disabled
+            className="bg-slate-50 cursor-not-allowed"
+          />
+        </div>
+        <Button type="submit" className="w-full">
+          Update Profile
+        </Button>
+      </form>
     </div>
   );
 
@@ -142,11 +215,7 @@ const DoctorDashboard = ({ user, activeTab }) => {
           </div>
         </div>
       )}
-      {activeTab === "Profile" && (
-        <div className="p-4 bg-white rounded border">
-          Profile Management (Coming Soon)
-        </div>
-      )}
+      {activeTab === "Profile" && renderProfile()}
     </div>
   );
 };
