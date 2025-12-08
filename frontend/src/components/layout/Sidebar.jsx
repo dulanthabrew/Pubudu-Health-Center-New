@@ -30,7 +30,7 @@ const Sidebar = ({ user, activeTab, onNavigate, onLogout }) => {
     items = [
       { icon: LayoutDashboard, label: "My Dashboard" },
       { icon: Calendar, label: "Appointments" },
-      { icon: Clock, label: "Schedule" }, // Added Schedule Tab
+      { icon: Clock, label: "Schedule" },
       { icon: Users, label: "My Patients" },
       { icon: FileText, label: "Records" },
       { icon: User, label: "Profile" },
@@ -53,6 +53,10 @@ const Sidebar = ({ user, activeTab, onNavigate, onLogout }) => {
     ];
   }
 
+  // Handle data inconsistency (SQL snake_case vs API camelCase)
+  const firstName = user.first_name || user.firstName || "User";
+  const lastName = user.last_name || user.lastName || "";
+
   return (
     <div className="w-64 bg-white border-r border-slate-200 h-screen hidden md:flex flex-col">
       <div className="p-6">
@@ -61,11 +65,11 @@ const Sidebar = ({ user, activeTab, onNavigate, onLogout }) => {
       <div className="px-4 mb-6">
         <div className="bg-slate-50 p-3 rounded-lg flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
-            {user.firstName?.[0]}
+            {firstName?.[0]?.toUpperCase()}
           </div>
           <div className="overflow-hidden">
             <p className="font-semibold text-sm truncate">
-              {user.firstName} {user.lastName}
+              {firstName} {lastName}
             </p>
             <p className="text-xs text-slate-500 capitalize">{user.role}</p>
           </div>

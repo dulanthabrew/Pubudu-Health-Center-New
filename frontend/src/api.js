@@ -3,6 +3,7 @@ import axios from "axios";
 const API_URL = "http://localhost:5000/api";
 
 export const api = {
+  // Auth
   login: async (email, password) => {
     const res = await axios.post(`${API_URL}/login`, { email, password });
     return res.data;
@@ -11,6 +12,8 @@ export const api = {
     const res = await axios.post(`${API_URL}/register`, data);
     return res.data;
   },
+
+  // Users
   getUsersByRole: async (role) => {
     const res = await axios.get(`${API_URL}/users?role=${role}`);
     return res.data;
@@ -21,10 +24,16 @@ export const api = {
   updateProfile: async (id, data) => {
     await axios.put(`${API_URL}/users/${id}`, data);
   },
+
+  // Appointments
   getAppointments: async (userId, role) => {
     const res = await axios.get(
       `${API_URL}/appointments?userId=${userId}&role=${role}`
     );
+    return res.data;
+  },
+  getAllAppointments: async () => {
+    const res = await axios.get(`${API_URL}/appointments`);
     return res.data;
   },
   createAppointment: async (data) => {
@@ -33,6 +42,8 @@ export const api = {
   updateAppointmentStatus: async (id, status) => {
     await axios.put(`${API_URL}/appointments/${id}`, { status });
   },
+
+  // Slots
   addSlot: async (doctorId, dateTime) => {
     await axios.post(`${API_URL}/slots`, { doctorId, dateTime });
   },
