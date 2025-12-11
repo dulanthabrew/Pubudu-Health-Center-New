@@ -1,10 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { UserPlus, UserCheck, Trash2, X, User } from "lucide-react";
+import {
+  UserPlus,
+  UserCheck,
+  Trash2,
+  X,
+  User,
+  Users,
+  Stethoscope,
+  ShieldCheck,
+  ChevronRight,
+} from "lucide-react";
 import { api } from "../../api";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 
-const AdminDashboard = ({ user, activeTab }) => {
+const AdminDashboard = ({ user, activeTab, onUpdateUser, onNavigate }) => {
   const [doctors, setDoctors] = useState([]);
   const [receptionists, setReceptionists] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -89,6 +99,16 @@ const AdminDashboard = ({ user, activeTab }) => {
         lastName: profileData.lastName,
         phone: profileData.phone,
       });
+
+      // Update global user state
+      if (onUpdateUser) {
+        onUpdateUser({
+          first_name: profileData.firstName,
+          last_name: profileData.lastName,
+          phone: profileData.phone,
+        });
+      }
+
       alert("Profile updated successfully!");
     } catch (err) {
       alert("Error updating profile");
@@ -100,19 +120,24 @@ const AdminDashboard = ({ user, activeTab }) => {
       {list.map((item) => (
         <div
           key={item.id}
-          className="p-4 border rounded flex justify-between items-center"
+          className="p-4 border rounded flex justify-between items-center hover:bg-slate-50 transition-colors"
         >
-          <div>
-            <p className="font-bold">
-              {item.first_name} {item.last_name}
-            </p>
-            <p className="text-sm text-slate-500">
-              {item.email} {item.specialty && `• ${item.specialty}`}
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold">
+              {item.first_name[0]}
+            </div>
+            <div>
+              <p className="font-bold">
+                {item.first_name} {item.last_name}
+              </p>
+              <p className="text-sm text-slate-500">
+                {item.email} {item.specialty && `• ${item.specialty}`}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => handleDelete(item.id)}
-            className="text-red-500 hover:bg-red-50 p-2 rounded"
+            className="text-red-500 hover:bg-red-50 p-2 rounded transition-colors"
           >
             <Trash2 size={18} />
           </button>
@@ -123,20 +148,149 @@ const AdminDashboard = ({ user, activeTab }) => {
   );
 
   const renderDashboard = () => (
-    <div className="grid grid-cols-3 gap-4">
-      <div className="bg-white p-6 rounded-xl border shadow-sm">
-        <p>Patients</p>
-        <p className="text-3xl font-bold text-blue-600">{stats.patients}</p>
-      </div>
-      <div className="bg-white p-6 rounded-xl border shadow-sm">
-        <p>Doctors</p>
-        <p className="text-3xl font-bold text-indigo-600">{stats.doctors}</p>
-      </div>
-      <div className="bg-white p-6 rounded-xl border shadow-sm">
-        <p>Receptionists</p>
-        <p className="text-3xl font-bold text-emerald-600">
-          {stats.receptionists}
+    <div className="space-y-8">
+      {/* Welcome Banner */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white shadow-lg">
+        <h2 className="text-3xl font-bold mb-2">
+          Welcome back, {user.first_name}!
+        </h2>
+        <p className="text-blue-100 opacity-90">
+          Here is an overview of your hospital's current status and quick
+          actions.
         </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-slate-500 text-sm font-medium mb-1">
+                Total Patients
+              </p>
+              <h3 className="text-3xl font-bold text-slate-800">
+                {stats.patients}
+              </h3>
+            </div>
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+              <Users size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-slate-500 text-sm font-medium mb-1">
+                Active Doctors
+              </p>
+              <h3 className="text-3xl font-bold text-slate-800">
+                {stats.doctors}
+              </h3>
+            </div>
+            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
+              <Stethoscope size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-slate-500 text-sm font-medium mb-1">
+                Reception Staff
+              </p>
+              <h3 className="text-3xl font-bold text-slate-800">
+                {stats.receptionists}
+              </h3>
+            </div>
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+              <ShieldCheck size={24} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          Quick Shortcuts
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <button
+            onClick={() => handleOpenModal("doctor")}
+            className="p-5 bg-white border border-slate-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all text-left group"
+          >
+            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <UserPlus size={24} />
+            </div>
+            <h4 className="font-semibold text-slate-800 text-lg">Add Doctor</h4>
+            <p className="text-sm text-slate-500 mt-1">
+              Register a new specialist
+            </p>
+          </button>
+
+          <button
+            onClick={() => handleOpenModal("receptionist")}
+            className="p-5 bg-white border border-slate-200 rounded-xl hover:border-emerald-500 hover:shadow-md transition-all text-left group"
+          >
+            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <UserCheck size={24} />
+            </div>
+            <h4 className="font-semibold text-slate-800 text-lg">
+              Add Receptionist
+            </h4>
+            <p className="text-sm text-slate-500 mt-1">
+              Register front desk staff
+            </p>
+          </button>
+
+          <button
+            onClick={() => onNavigate("Patients")}
+            className="p-5 bg-white border border-slate-200 rounded-xl hover:border-indigo-500 hover:shadow-md transition-all text-left group"
+          >
+            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Users size={24} />
+            </div>
+            <div className="flex justify-between items-center">
+              <div>
+                <h4 className="font-semibold text-slate-800 text-lg">
+                  View Patients
+                </h4>
+                <p className="text-sm text-slate-500 mt-1">
+                  Manage patient records
+                </p>
+              </div>
+              <ChevronRight
+                size={20}
+                className="text-slate-300 group-hover:text-indigo-500 transition-colors"
+              />
+            </div>
+          </button>
+
+          <button
+            onClick={() => onNavigate("Doctors")}
+            className="p-5 bg-white border border-slate-200 rounded-xl hover:border-indigo-500 hover:shadow-md transition-all text-left group"
+          >
+            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Stethoscope size={24} />
+            </div>
+            <div className="flex justify-between items-center">
+              <div>
+                <h4 className="font-semibold text-slate-800 text-lg">
+                  View Doctors
+                </h4>
+                <p className="text-sm text-slate-500 mt-1">
+                  Manage medical staff
+                </p>
+              </div>
+              <ChevronRight
+                size={20}
+                className="text-slate-300 group-hover:text-indigo-500 transition-colors"
+              />
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   );
