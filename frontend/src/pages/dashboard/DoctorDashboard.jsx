@@ -4,7 +4,7 @@ import { api } from "../../api";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 
-const DoctorDashboard = ({ user, activeTab }) => {
+const DoctorDashboard = ({ user, activeTab, onUpdateUser }) => {
   const [appointments, setAppointments] = useState([]);
   const [slots, setSlots] = useState([]);
   const [newSlot, setNewSlot] = useState({ date: "", time: "" });
@@ -34,6 +34,7 @@ const DoctorDashboard = ({ user, activeTab }) => {
   const handleAddSlot = async (e) => {
     e.preventDefault();
     if (newSlot.date && newSlot.time) {
+      // The API will now receive this string directly
       await api.addSlot(user.id, `${newSlot.date} ${newSlot.time}`);
       setNewSlot({ date: "", time: "" });
       fetchData();
@@ -58,6 +59,16 @@ const DoctorDashboard = ({ user, activeTab }) => {
         lastName: profileData.lastName,
         phone: profileData.phone,
       });
+
+      // Update global user state
+      if (onUpdateUser) {
+        onUpdateUser({
+          first_name: profileData.firstName,
+          last_name: profileData.lastName,
+          phone: profileData.phone,
+        });
+      }
+
       alert("Profile updated successfully!");
     } catch (err) {
       alert("Error updating profile");
@@ -66,38 +77,43 @@ const DoctorDashboard = ({ user, activeTab }) => {
 
   const renderAppointments = () => (
     <div className="space-y-4">
-      {appointments.map((apt) => (
-        <div
-          key={apt.id}
-          className="p-4 border rounded bg-white flex justify-between items-center"
-        >
-          <div>
-            <p className="font-bold">{apt.patient_name}</p>
-            <p className="text-sm text-slate-500">
-              {new Date(apt.date_time).toLocaleString()}
-            </p>
-          </div>
-          <div className="flex gap-2 items-center">
-            <span
-              className={`px-2 py-1 rounded text-xs ${
-                apt.status === "Pending"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-green-100 text-green-800"
-              }`}
-            >
-              {apt.status}
-            </span>
-            {apt.status === "Pending" && (
-              <Button
-                onClick={() => handleStatus(apt.id, "Confirmed")}
-                className="h-8 text-xs"
+      {appointments.map((apt) => {
+        // Safe Date Parse
+        const aptDate = new Date(String(apt.date_time).replace(" ", "T"));
+
+        return (
+          <div
+            key={apt.id}
+            className="p-4 border rounded bg-white flex justify-between items-center"
+          >
+            <div>
+              <p className="font-bold">{apt.patient_name}</p>
+              <p className="text-sm text-slate-500">
+                {aptDate.toLocaleString()}
+              </p>
+            </div>
+            <div className="flex gap-2 items-center">
+              <span
+                className={`px-2 py-1 rounded text-xs ${
+                  apt.status === "Pending"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-green-100 text-green-800"
+                }`}
               >
-                Accept
-              </Button>
-            )}
+                {apt.status}
+              </span>
+              {apt.status === "Pending" && (
+                <Button
+                  onClick={() => handleStatus(apt.id, "Confirmed")}
+                  className="h-8 text-xs"
+                >
+                  Accept
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
       {appointments.length === 0 && (
         <p className="text-slate-400">No appointments.</p>
       )}
@@ -197,20 +213,27 @@ const DoctorDashboard = ({ user, activeTab }) => {
           <div className="bg-white p-6 rounded border shadow-sm">
             <h3 className="font-bold mb-4">Current Slots</h3>
             <div className="grid grid-cols-3 gap-4">
-              {slots.map((s) => (
-                <div
-                  key={s.id}
-                  className="p-3 bg-slate-50 border rounded flex justify-between items-center"
-                >
-                  <span>{new Date(s.date_time).toLocaleString()}</span>
-                  <button
-                    onClick={() => handleDeleteSlot(s.id)}
-                    className="text-red-500"
+              {slots.map((s) => {
+                // Safe date parse
+                const slotDate = new Date(
+                  String(s.date_time).replace(" ", "T")
+                );
+
+                return (
+                  <div
+                    key={s.id}
+                    className="p-3 bg-slate-50 border rounded flex justify-between items-center"
                   >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
+                    <span>{slotDate.toLocaleString()}</span>
+                    <button
+                      onClick={() => handleDeleteSlot(s.id)}
+                      className="text-red-500"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

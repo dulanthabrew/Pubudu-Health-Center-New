@@ -34,12 +34,12 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
 
   const handleBook = async (slot) => {
     const doc = doctors.find((d) => d.id === selectedDoc);
+
+    // Safety check for date formatting
+    const safeDate = new Date(String(slot.date_time).replace(" ", "T"));
+
     if (
-      confirm(
-        `Book with Dr. ${doc.last_name} at ${new Date(
-          slot.date_time
-        ).toLocaleString()}?`
-      )
+      confirm(`Book with Dr. ${doc.last_name} at ${safeDate.toLocaleString()}?`)
     ) {
       // 1. Create the appointment
       await api.createAppointment({
@@ -51,7 +51,7 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
       });
 
       // 2. Remove the slot
-      await api.deleteSlot(slot.id); // Consumes the slot
+      await api.deleteSlot(slot.id);
 
       // 3. Send SMS Confirmation
       try {
@@ -64,7 +64,7 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
             to: user.phone,
             message: `Hello ${user.first_name}, your appointment with Dr. ${
               doc.last_name
-            } on ${new Date(slot.date_time).toLocaleString()} is confirmed!`,
+            } on ${safeDate.toLocaleString()} is confirmed!`,
           }),
         });
       } catch (err) {
@@ -86,7 +86,6 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
         phone: profileData.phone,
       });
 
-      // Notify App.jsx to update global user state
       if (onUpdateUser) {
         onUpdateUser({
           first_name: profileData.firstName,
@@ -169,33 +168,38 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
         <div className="bg-white p-6 rounded-xl border shadow-sm">
           <h3 className="font-bold text-lg mb-4">My Appointments</h3>
           <div className="space-y-2">
-            {appointments.map((apt) => (
-              <div
-                key={apt.id}
-                className="p-4 border rounded flex justify-between items-center"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
-                    <Calendar size={20} />
-                  </div>
-                  <div>
-                    <p className="font-bold">Dr. {apt.doctor_name}</p>
-                    <p className="text-sm text-slate-500">
-                      {new Date(apt.date_time).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    apt.status === "Confirmed"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}
+            {appointments.map((apt) => {
+              // Safe parsing helper
+              const aptDate = new Date(String(apt.date_time).replace(" ", "T"));
+
+              return (
+                <div
+                  key={apt.id}
+                  className="p-4 border rounded flex justify-between items-center"
                 >
-                  {apt.status}
-                </span>
-              </div>
-            ))}
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
+                      <Calendar size={20} />
+                    </div>
+                    <div>
+                      <p className="font-bold">Dr. {apt.doctor_name}</p>
+                      <p className="text-sm text-slate-500">
+                        {aptDate.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      apt.status === "Confirmed"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-yellow-100 text-yellow-700"
+                    }`}
+                  >
+                    {apt.status}
+                  </span>
+                </div>
+              );
+            })}
             {appointments.length === 0 && (
               <p className="text-slate-400">No upcoming appointments.</p>
             )}
@@ -245,20 +249,27 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                {slots.map((s) => (
-                  <Button
-                    key={s.id}
-                    variant="outline"
-                    onClick={() => handleBook(s)}
-                    className="text-xs"
-                  >
-                    {new Date(s.date_time).toLocaleDateString()} <br />{" "}
-                    {new Date(s.date_time).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Button>
-                ))}
+                {slots.map((s) => {
+                  // Safe parsing helper
+                  const slotDate = new Date(
+                    String(s.date_time).replace(" ", "T")
+                  );
+
+                  return (
+                    <Button
+                      key={s.id}
+                      variant="outline"
+                      onClick={() => handleBook(s)}
+                      className="text-xs"
+                    >
+                      {slotDate.toLocaleDateString()} <br />{" "}
+                      {slotDate.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Button>
+                  );
+                })}
               </div>
             )}
           </div>

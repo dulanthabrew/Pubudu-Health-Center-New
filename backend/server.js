@@ -16,7 +16,7 @@ require("dotenv").config();
 // ==========================================
 // We now access the variables using process.env
 const TEXT_LK_API_TOKEN = process.env.TEXT_LK_API_TOKEN;
-const TEXT_LK_SENDER_ID = process.env.TEXT_LK_SENDER_ID || "TextLK"; // Default to TextLK if not set
+const TEXT_LK_SENDER_ID = process.env.TEXT_LK_SENDER_ID || "TextLKDemo"; // Default to TextLK if not set
 const PORT = process.env.PORT || 5000;
 // ==========================================
 
@@ -74,6 +74,7 @@ const db = mysql.createConnection({
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASS || "",
   database: process.env.DB_NAME || "pubudu_health",
+  dateStrings: true, // <--- CRITICAL FIX: Treats dates as strings to prevent timezone shifting
 });
 
 db.connect((err) => {
