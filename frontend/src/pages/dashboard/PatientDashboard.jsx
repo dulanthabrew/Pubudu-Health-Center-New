@@ -19,7 +19,16 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
 
   useEffect(() => {
     if (activeTab === "Overview" || activeTab === "Appointments") {
-      api.getAppointments(user.id, "patient").then(setAppointments);
+      api.getAppointments(user.id, "patient").then((data) => {
+        // SORTING LOGIC ADDED:
+        // Sorts by date_time in descending order (latest dates first)
+        const sortedData = data.sort((a, b) => {
+          const dateA = new Date(String(a.date_time).replace(" ", "T"));
+          const dateB = new Date(String(b.date_time).replace(" ", "T"));
+          return dateB - dateA;
+        });
+        setAppointments(sortedData);
+      });
     }
     if (activeTab === "Find Doctor") {
       api.getUsersByRole("doctor").then(setDoctors);
@@ -53,7 +62,7 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
       // 2. Remove the slot
       await api.deleteSlot(slot.id);
 
-      // 3. Send SMS Confirmation (UPDATED MESSAGE)
+      // 3. Send SMS Confirmation
       try {
         await fetch("http://localhost:5000/api/send-sms", {
           method: "POST",
@@ -62,7 +71,6 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
           },
           body: JSON.stringify({
             to: user.phone,
-            // Changed message to indicate PENDING status
             message: `Hello ${
               user.first_name
             }, your appointment request with Dr. ${

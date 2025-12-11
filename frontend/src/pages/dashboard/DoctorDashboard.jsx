@@ -19,7 +19,14 @@ const DoctorDashboard = ({ user, activeTab, onUpdateUser }) => {
   const fetchData = async () => {
     if (activeTab === "Appointments" || activeTab === "My Dashboard") {
       const data = await api.getAppointments(user.id, "doctor");
-      setAppointments(data);
+      // SORTING LOGIC ADDED HERE:
+      // Sorts by date_time in descending order (latest dates first)
+      const sortedData = data.sort((a, b) => {
+        const dateA = new Date(String(a.date_time).replace(" ", "T"));
+        const dateB = new Date(String(b.date_time).replace(" ", "T"));
+        return dateB - dateA;
+      });
+      setAppointments(sortedData);
     }
     if (activeTab === "Schedule") {
       const data = await api.getSlots(user.id);
