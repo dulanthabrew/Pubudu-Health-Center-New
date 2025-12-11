@@ -89,7 +89,7 @@ const Sidebar = ({ user, activeTab, onNavigate, onLogout }) => {
       {/* Sidebar Container */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 h-screen flex flex-col transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-50 w-74 bg-white border-r border-slate-200 h-screen flex flex-col transition-transform duration-300 ease-in-out
           md:translate-x-0 md:static md:h-screen md:shadow-none
           ${isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
         `}
