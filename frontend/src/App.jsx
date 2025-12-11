@@ -37,6 +37,13 @@ export default function App() {
     setView("login");
   };
 
+  // NEW: Function to update user state locally without relogin
+  const handleUserUpdate = (updatedFields) => {
+    const updatedUser = { ...user, ...updatedFields };
+    setUser(updatedUser);
+    localStorage.setItem("pubudu_user", JSON.stringify(updatedUser));
+  };
+
   if (user) {
     let Dashboard = PatientDashboard;
     if (user.role === "admin") Dashboard = AdminDashboard;
@@ -56,6 +63,7 @@ export default function App() {
             user={user}
             activeTab={activeTab}
             onNavigate={setActiveTab}
+            onUpdateUser={handleUserUpdate} // Pass the update function to dashboard
           />
         </main>
       </div>

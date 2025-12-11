@@ -54,4 +54,11 @@ export const api = {
   deleteSlot: async (id) => {
     await axios.delete(`${API_URL}/slots/${id}`);
   },
+
+  // SMS Notification (Frontend Simulation)
+  sendSMS: async (to, message) => {
+    console.log(`[SMS SIMULATION] To: ${to} | Message: ${message}`);
+    alert(`SMS SENT:\nTo: ${to}\nMessage: ${message}`);
+    // In production, you would call: axios.post(`${API_URL}/send-sms`, { to, message });
+  },
 };

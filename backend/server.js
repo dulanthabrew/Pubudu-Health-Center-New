@@ -2,17 +2,78 @@ const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const axios = require("axios");
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// Load environment variables from .env file
+require("dotenv").config();
+
+// ==========================================
+// CONFIGURATION (LOADED FROM .ENV)
+// ==========================================
+// We now access the variables using process.env
+const TEXT_LK_API_TOKEN = process.env.TEXT_LK_API_TOKEN;
+const TEXT_LK_SENDER_ID = process.env.TEXT_LK_SENDER_ID || "TextLK"; // Default to TextLK if not set
+const PORT = process.env.PORT || 5000;
+// ==========================================
+
+// --- SMS ROUTE (Text.lk) ---
+app.post("/api/send-sms", async (req, res) => {
+  const { to, message } = req.body;
+
+  console.log("Received SMS Request:", { to, message });
+
+  // 1. Validation: Ensure phone number exists
+  if (!to) {
+    console.error("Error: Missing 'to' phone number");
+    return res
+      .status(400)
+      .json({ success: false, error: "Missing phone number" });
+  }
+
+  // 2. Format Phone Number: Remove '+' if present
+  const formattedNumber = to.toString().replace("+", "");
+
+  try {
+    const response = await axios.post(
+      "https://app.text.lk/api/v3/sms/send",
+      {
+        recipient: formattedNumber,
+        sender_id: TEXT_LK_SENDER_ID,
+        type: "plain",
+        message: message,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${TEXT_LK_API_TOKEN}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      }
+    );
+
+    console.log("SMS Sent Successfully:", response.data);
+    res.json({ success: true, data: response.data });
+  } catch (err) {
+    const errorDetails = err.response ? err.response.data : err.message;
+    console.error("Text.lk API Error:", JSON.stringify(errorDetails, null, 2));
+
+    res.status(500).json({
+      success: false,
+      error: errorDetails,
+    });
+  }
+});
+
 // Database Connection
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root", // Default XAMPP user
-  password: "", // Default XAMPP password (empty)
-  database: "pubudu_health",
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASS || "",
+  database: process.env.DB_NAME || "pubudu_health",
 });
 
 db.connect((err) => {
@@ -30,7 +91,6 @@ app.post("/api/login", (req, res) => {
     if (err) return res.status(500).json(err);
     if (result.length > 0) {
       const user = result[0];
-      // Don't send password back
       delete user.password;
       res.json(user);
     } else {
@@ -89,7 +149,7 @@ app.put("/api/users/:id", (req, res) => {
 
 // --- APPOINTMENT ROUTES ---
 
-// Get Appointments (Filter by Doctor or Patient)
+// Get Appointments
 app.get("/api/appointments", (req, res) => {
   const { userId, role } = req.query;
   let sql = "SELECT * FROM appointments";
@@ -164,6 +224,6 @@ app.delete("/api/slots/:id", (req, res) => {
   });
 });
 
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

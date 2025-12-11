@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+Environment variables (CRITICAL: Do not remove this line)
+.env
+
+OS generated files
+
+.DS_Store
+Thumbs.db

@@ -4,7 +4,7 @@ import { api } from "../../api";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 
-const PatientDashboard = ({ user, activeTab, onNavigate }) => {
+const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [slots, setSlots] = useState([]);
@@ -41,6 +41,7 @@ const PatientDashboard = ({ user, activeTab, onNavigate }) => {
         ).toLocaleString()}?`
       )
     ) {
+      // 1. Create the appointment
       await api.createAppointment({
         patientId: user.id,
         doctorId: selectedDoc,
@@ -48,7 +49,28 @@ const PatientDashboard = ({ user, activeTab, onNavigate }) => {
         doctorName: `${doc.first_name} ${doc.last_name}`,
         date: slot.date_time,
       });
+
+      // 2. Remove the slot
       await api.deleteSlot(slot.id); // Consumes the slot
+
+      // 3. Send SMS Confirmation
+      try {
+        await fetch("http://localhost:5000/api/send-sms", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            to: user.phone,
+            message: `Hello ${user.first_name}, your appointment with Dr. ${
+              doc.last_name
+            } on ${new Date(slot.date_time).toLocaleString()} is confirmed!`,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to send SMS:", err);
+      }
+
       alert("Appointment Booked!");
       setSlots(slots.filter((s) => s.id !== slot.id));
       if (onNavigate) onNavigate("Appointments");
@@ -63,6 +85,16 @@ const PatientDashboard = ({ user, activeTab, onNavigate }) => {
         lastName: profileData.lastName,
         phone: profileData.phone,
       });
+
+      // Notify App.jsx to update global user state
+      if (onUpdateUser) {
+        onUpdateUser({
+          first_name: profileData.firstName,
+          last_name: profileData.lastName,
+          phone: profileData.phone,
+        });
+      }
+
       alert("Profile updated successfully!");
     } catch (err) {
       alert("Error updating profile");
