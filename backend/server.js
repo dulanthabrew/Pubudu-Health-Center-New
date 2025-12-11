@@ -16,7 +16,7 @@ require("dotenv").config();
 // ==========================================
 // We now access the variables using process.env
 const TEXT_LK_API_TOKEN = process.env.TEXT_LK_API_TOKEN;
-const TEXT_LK_SENDER_ID = process.env.TEXT_LK_SENDER_ID || "TextLKDemo"; // Default to TextLK if not set
+const TEXT_LK_SENDER_ID = process.env.TEXT_LK_SENDER_ID || "TextLK"; // Default to TextLK if not set
 const PORT = process.env.PORT || 5000;
 // ==========================================
 
@@ -74,7 +74,7 @@ const db = mysql.createConnection({
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASS || "",
   database: process.env.DB_NAME || "pubudu_health",
-  dateStrings: true, // <--- CRITICAL FIX: Treats dates as strings to prevent timezone shifting
+  dateStrings: true, // Treats dates as strings to prevent timezone shifting
 });
 
 db.connect((err) => {
@@ -150,17 +150,22 @@ app.put("/api/users/:id", (req, res) => {
 
 // --- APPOINTMENT ROUTES ---
 
-// Get Appointments
+// Get Appointments (Updated to fetch Patient Phone)
 app.get("/api/appointments", (req, res) => {
   const { userId, role } = req.query;
-  let sql = "SELECT * FROM appointments";
+  // JOIN with users table to get the patient's phone number
+  let sql = `
+    SELECT appointments.*, users.phone AS patient_phone 
+    FROM appointments 
+    JOIN users ON appointments.patient_id = users.id
+  `;
   let params = [];
 
   if (role === "doctor") {
-    sql += " WHERE doctor_id = ?";
+    sql += " WHERE appointments.doctor_id = ?";
     params.push(userId);
   } else if (role === "patient") {
-    sql += " WHERE patient_id = ?";
+    sql += " WHERE appointments.patient_id = ?";
     params.push(userId);
   }
 

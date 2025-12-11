@@ -35,7 +35,7 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
   const handleBook = async (slot) => {
     const doc = doctors.find((d) => d.id === selectedDoc);
 
-    // Safety check for date formatting
+    // Safe parsing helper
     const safeDate = new Date(String(slot.date_time).replace(" ", "T"));
 
     if (
@@ -53,7 +53,7 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
       // 2. Remove the slot
       await api.deleteSlot(slot.id);
 
-      // 3. Send SMS Confirmation
+      // 3. Send SMS Confirmation (UPDATED MESSAGE)
       try {
         await fetch("http://localhost:5000/api/send-sms", {
           method: "POST",
@@ -62,9 +62,12 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
           },
           body: JSON.stringify({
             to: user.phone,
-            message: `Hello ${user.first_name}, your appointment with Dr. ${
+            // Changed message to indicate PENDING status
+            message: `Hello ${
+              user.first_name
+            }, your appointment request with Dr. ${
               doc.last_name
-            } on ${safeDate.toLocaleString()} is confirmed!`,
+            } on ${safeDate.toLocaleString()} has been submitted. Please wait for the doctor's confirmation.`,
           }),
         });
       } catch (err) {

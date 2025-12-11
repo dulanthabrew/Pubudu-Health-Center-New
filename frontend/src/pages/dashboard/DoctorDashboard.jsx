@@ -34,7 +34,6 @@ const DoctorDashboard = ({ user, activeTab, onUpdateUser }) => {
   const handleAddSlot = async (e) => {
     e.preventDefault();
     if (newSlot.date && newSlot.time) {
-      // The API will now receive this string directly
       await api.addSlot(user.id, `${newSlot.date} ${newSlot.time}`);
       setNewSlot({ date: "", time: "" });
       fetchData();
@@ -42,8 +41,53 @@ const DoctorDashboard = ({ user, activeTab, onUpdateUser }) => {
   };
 
   const handleStatus = async (id, status) => {
-    await api.updateAppointmentStatus(id, status);
-    fetchData();
+    // 1. Find the specific appointment to get patient details
+    const appointment = appointments.find((a) => a.id === id);
+    if (!appointment) return;
+
+    if (
+      confirm(`Are you sure you want to mark this appointment as ${status}?`)
+    ) {
+      // 2. Update Status in DB
+      await api.updateAppointmentStatus(id, status);
+
+      // 3. Send SMS Notification (UPDATED MESSAGE LOGIC)
+      if (appointment.patient_phone) {
+        try {
+          // Format the date nicely for the SMS
+          const dateStr = new Date(
+            String(appointment.date_time).replace(" ", "T")
+          ).toLocaleString();
+
+          let message = "";
+
+          if (status === "Confirmed") {
+            message = `Good news! Your appointment with Dr. ${user.last_name} on ${dateStr} has been CONFIRMED.`;
+          } else {
+            message = `Notice: Your appointment with Dr. ${user.last_name} on ${dateStr} was DECLINED. Please reschedule.`;
+          }
+
+          await fetch("http://localhost:5000/api/send-sms", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              to: appointment.patient_phone,
+              message: message,
+            }),
+          });
+          console.log("SMS sent to:", appointment.patient_phone);
+        } catch (err) {
+          console.error("Failed to send SMS:", err);
+          alert("Status updated, but failed to send SMS.");
+        }
+      } else {
+        console.warn("No phone number found for patient.");
+      }
+
+      fetchData();
+    }
   };
 
   const handleDeleteSlot = async (id) => {
@@ -92,23 +136,33 @@ const DoctorDashboard = ({ user, activeTab, onUpdateUser }) => {
                 {aptDate.toLocaleString()}
               </p>
             </div>
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-3 items-center">
               <span
-                className={`px-2 py-1 rounded text-xs ${
+                className={`px-2 py-1 rounded text-xs font-semibold ${
                   apt.status === "Pending"
                     ? "bg-yellow-100 text-yellow-800"
-                    : "bg-green-100 text-green-800"
+                    : apt.status === "Confirmed"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
                 }`}
               >
                 {apt.status}
               </span>
               {apt.status === "Pending" && (
-                <Button
-                  onClick={() => handleStatus(apt.id, "Confirmed")}
-                  className="h-8 text-xs"
-                >
-                  Accept
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleStatus(apt.id, "Confirmed")}
+                    className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-none"
+                  >
+                    Accept
+                  </Button>
+                  <Button
+                    onClick={() => handleStatus(apt.id, "Declined")}
+                    className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white shadow-none"
+                  >
+                    Decline
+                  </Button>
+                </div>
               )}
             </div>
           </div>
