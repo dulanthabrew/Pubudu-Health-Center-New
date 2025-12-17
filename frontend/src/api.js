@@ -55,6 +55,27 @@ export const api = {
     await axios.delete(`${API_URL}/slots/${id}`);
   },
 
+  deleteSlot: async (id) => {
+    await axios.delete(`${API_URL}/slots/${id}`);
+  },
+
+  // Reports
+  getReports: async () => {
+    const res = await axios.get(`${API_URL}/reports`);
+    return res.data;
+  },
+  uploadReport: async (data) => {
+    const res = await axios.post(`${API_URL}/reports`, data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return res.data;
+  },
+  deleteReport: async (id) => {
+    await axios.delete(`${API_URL}/reports/${id}`);
+  },
+
   // SMS Notification (Frontend Simulation)
   sendSMS: async (to, message) => {
     console.log(`[SMS SIMULATION] To: ${to} | Message: ${message}`);

@@ -9,6 +9,8 @@ import {
   Stethoscope,
   ShieldCheck,
   ChevronRight,
+  FileText,
+  Upload,
 } from "lucide-react";
 import { api } from "../../api";
 import Button from "../../components/ui/Button";
@@ -23,6 +25,7 @@ const AdminDashboard = ({ user, activeTab, onUpdateUser, onNavigate }) => {
     doctors: 0,
     receptionists: 0,
   });
+  const [reports, setReports] = useState([]);
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -33,6 +36,14 @@ const AdminDashboard = ({ user, activeTab, onUpdateUser, onNavigate }) => {
     email: "",
     password: "",
     specialty: "",
+  });
+  
+  // Report Modal State
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportData, setReportData] = useState({
+    title: "",
+    description: "",
+    file: null,
   });
 
   // Profile State
@@ -46,6 +57,12 @@ const AdminDashboard = ({ user, activeTab, onUpdateUser, onNavigate }) => {
     const docs = await api.getUsersByRole("doctor");
     const recs = await api.getUsersByRole("receptionist");
     const pats = await api.getUsersByRole("patient");
+    
+    if (activeTab === "Reports") {
+      const reps = await api.getReports();
+      setReports(reps);
+    }
+
     setDoctors(docs);
     setReceptionists(recs);
     setPatients(pats);
@@ -347,6 +364,84 @@ const AdminDashboard = ({ user, activeTab, onUpdateUser, onNavigate }) => {
     </div>
   );
 
+  const handleUploadReport = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append("title", reportData.title);
+    formData.append("description", reportData.description);
+    formData.append("file", reportData.file);
+
+    try {
+      await api.uploadReport(formData);
+      alert("Report uploaded successfully!");
+      setShowReportModal(false);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload report");
+    }
+  };
+
+  const handleDeleteReport = async (id) => {
+    if (confirm("Delete this report?")) {
+      await api.deleteReport(id);
+      fetchData();
+    }
+  };
+
+  const renderReports = () => (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setShowReportModal(true)}>
+          <Upload size={18} /> Upload Report
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {reports.map((report) => (
+          <div
+            key={report.id}
+            className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group"
+          >
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => handleDeleteReport(report.id)}
+                className="text-red-500 hover:bg-red-50 p-2 rounded"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+            <div className="mb-4 text-blue-600 bg-blue-50 w-12 h-12 rounded-lg flex items-center justify-center">
+              <FileText size={24} />
+            </div>
+            <h3 className="font-bold text-lg mb-1">{report.title}</h3>
+            <p className="text-slate-500 text-sm mb-4 line-clamp-2">
+              {report.description}
+            </p>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-400">
+                {new Date(report.created_at).toLocaleDateString()}
+              </span>
+              <a
+                href={`http://localhost:5000${report.file_path}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 hover:underline font-medium"
+              >
+                View File
+              </a>
+            </div>
+          </div>
+        ))}
+        {reports.length === 0 && (
+          <div className="col-span-full text-center py-12 text-slate-400">
+            <FileText size={48} className="mx-auto mb-4 opacity-50" />
+            <p>No reports found. Upload one to get started.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-8 relative">
       <h1 className="text-2xl font-bold mb-6">Admin: {activeTab}</h1>
@@ -375,6 +470,7 @@ const AdminDashboard = ({ user, activeTab, onUpdateUser, onNavigate }) => {
         </>
       )}
       {activeTab === "Patients" && renderList(patients)}
+      {activeTab === "Reports" && renderReports()}
       {activeTab === "Profile" && renderProfile()}
 
       {/* Modal */}
@@ -441,6 +537,58 @@ const AdminDashboard = ({ user, activeTab, onUpdateUser, onNavigate }) => {
               )}
               <Button type="submit" className="w-full">
                 Create Account
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b bg-slate-50">
+              <h3 className="text-lg font-bold text-slate-800">Upload Report</h3>
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="text-slate-400"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleUploadReport} className="p-6 space-y-4">
+              <Input
+                placeholder="Report Title"
+                value={reportData.title}
+                onChange={(e) =>
+                  setReportData({ ...reportData, title: e.target.value })
+                }
+                required
+              />
+              <textarea
+                className="w-full p-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Description"
+                rows="3"
+                value={reportData.description}
+                onChange={(e) =>
+                  setReportData({ ...reportData, description: e.target.value })
+                }
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Attach File
+                </label>
+                <input
+                  type="file"
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  onChange={(e) =>
+                    setReportData({ ...reportData, file: e.target.files[0] })
+                  }
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Upload Report
               </Button>
             </form>
           </div>
