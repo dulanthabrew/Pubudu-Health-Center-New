@@ -24,6 +24,10 @@ export const api = {
   updateProfile: async (id, data) => {
     await axios.put(`${API_URL}/users/${id}`, data);
   },
+  getDoctorPatients: async (doctorId) => {
+    const res = await axios.get(`${API_URL}/doctor/${doctorId}/patients`);
+    return res.data;
+  },
 
   // Appointments
   getAppointments: async (userId, role) => {

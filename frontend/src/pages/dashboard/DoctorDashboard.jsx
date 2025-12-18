@@ -17,6 +17,7 @@ import Input from "../../components/ui/Input";
 const DoctorDashboard = ({ user, activeTab, onUpdateUser, onNavigate }) => {
   const [appointments, setAppointments] = useState([]);
   const [slots, setSlots] = useState([]);
+  const [patients, setPatients] = useState([]);
   const [newSlot, setNewSlot] = useState({ date: "", time: "" });
 
   // Profile State
@@ -45,6 +46,10 @@ const DoctorDashboard = ({ user, activeTab, onUpdateUser, onNavigate }) => {
     if (activeTab === "Schedule") {
       const data = await api.getSlots(user.id);
       setSlots(data);
+    }
+    if (activeTab === "My Patients") {
+      const data = await api.getDoctorPatients(user.id);
+      setPatients(data);
     }
   };
 
@@ -391,6 +396,42 @@ const DoctorDashboard = ({ user, activeTab, onUpdateUser, onNavigate }) => {
     </div>
   );
 
+  const renderPatients = () => (
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold mb-4">My Patients</h2>
+      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+        <table className="w-full text-left text-sm text-slate-600">
+          <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+            <tr>
+              <th className="px-6 py-4">Name</th>
+              <th className="px-6 py-4">Phone</th>
+              <th className="px-6 py-4">Email</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {patients.length > 0 ? (
+              patients.map((p) => (
+                <tr key={p.id} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 font-medium text-slate-900">
+                    {p.first_name} {p.last_name}
+                  </td>
+                  <td className="px-6 py-4">{p.phone || "N/A"}</td>
+                  <td className="px-6 py-4">{p.email}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="3" className="px-6 py-8 text-center text-slate-400">
+                  No patients found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   const renderProfile = () => (
     <div className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm max-w-2xl mx-auto">
       <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
@@ -448,6 +489,7 @@ const DoctorDashboard = ({ user, activeTab, onUpdateUser, onNavigate }) => {
       {/* Conditionally render views */}
       {activeTab === "My Dashboard" && renderOverview()}
       {activeTab === "Appointments" && renderAppointments()}
+      {activeTab === "My Patients" && renderPatients()}
 
       {activeTab === "Schedule" && (
         <div className="space-y-6">

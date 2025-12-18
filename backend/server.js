@@ -259,6 +259,23 @@ app.delete("/api/slots/:id", (req, res) => {
   });
 });
 
+// --- DOCTOR SPECIFIC ROUTES ---
+
+// Get Unique Patients for a Doctor
+app.get("/api/doctor/:id/patients", (req, res) => {
+  const doctorId = req.params.id;
+  const sql = `
+    SELECT DISTINCT u.id, u.first_name, u.last_name, u.email, u.phone 
+    FROM users u 
+    JOIN appointments a ON u.id = a.patient_id 
+    WHERE a.doctor_id = ?
+  `;
+  db.query(sql, [doctorId], (err, results) => {
+    if (err) return res.status(500).json(err);
+    res.json(results);
+  });
+});
+
 // --- REPORT ROUTES ---
 
 // Get All Reports
