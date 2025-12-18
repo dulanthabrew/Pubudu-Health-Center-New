@@ -8,6 +8,7 @@ import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import DoctorDashboard from "./pages/dashboard/DoctorDashboard";
 import ReceptionistDashboard from "./pages/dashboard/ReceptionistDashboard";
 import Sidebar from "./components/layout/Sidebar";
+import Navbar from "./components/layout/Navbar";
 
 export default function App() {
   const [user, setUser] = useState(
@@ -50,14 +51,29 @@ export default function App() {
     if (user.role === "doctor") Dashboard = DoctorDashboard;
     if (user.role === "receptionist") Dashboard = ReceptionistDashboard;
 
+    const isPatient = user.role === "patient";
+
     return (
-      <div className="flex min-h-screen bg-slate-50">
-        <Sidebar
-          user={user}
-          activeTab={activeTab}
-          onNavigate={setActiveTab}
-          onLogout={handleLogout}
-        />
+      <div
+        className={`min-h-screen bg-slate-50 ${
+          isPatient ? "flex flex-col" : "flex"
+        }`}
+      >
+        {isPatient ? (
+          <Navbar
+            user={user}
+            activeTab={activeTab}
+            onNavigate={setActiveTab}
+            onLogout={handleLogout}
+          />
+        ) : (
+          <Sidebar
+            user={user}
+            activeTab={activeTab}
+            onNavigate={setActiveTab}
+            onLogout={handleLogout}
+          />
+        )}
         <main className="flex-1 overflow-auto">
           <Dashboard
             user={user}
