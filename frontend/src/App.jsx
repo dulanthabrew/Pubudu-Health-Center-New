@@ -15,24 +15,40 @@ export default function App() {
     JSON.parse(localStorage.getItem("pubudu_user"))
   );
   const [view, setView] = useState("login");
-  const [activeTab, setActiveTab] = useState("Dashboard");
-
-  // Set default tab on load/login
-  useEffect(() => {
+  const [activeTab, setActiveTab] = useState(() => {
     if (user) {
-      if (user.role === "admin") setActiveTab("Dashboard");
-      else if (user.role === "doctor") setActiveTab("My Dashboard");
-      else if (user.role === "patient") setActiveTab("Overview");
-      else setActiveTab("Front Desk");
+      const savedTab = localStorage.getItem(`activeTab_${user.id}`);
+      if (savedTab) return savedTab;
+      
+      // Default fallback if no saved tab
+      if (user.role === "admin") return "Dashboard";
+      if (user.role === "doctor") return "My Dashboard";
+      if (user.role === "patient") return "Overview";
+      return "Front Desk";
     }
-  }, [user]);
+    return "Dashboard";
+  });
+
+  // Save tab on change
+  useEffect(() => {
+    if (user && activeTab) {
+      localStorage.setItem(`activeTab_${user.id}`, activeTab);
+    }
+  }, [activeTab, user]);
 
   const handleLogin = (userData) => {
     localStorage.setItem("pubudu_user", JSON.stringify(userData));
     setUser(userData);
+    
+    // Set default tab based on role
+    if (userData.role === "admin") setActiveTab("Dashboard");
+    else if (userData.role === "doctor") setActiveTab("My Dashboard");
+    else if (userData.role === "patient") setActiveTab("Overview");
+    else setActiveTab("Front Desk");
   };
 
   const handleLogout = () => {
+    localStorage.removeItem(`activeTab_${user.id}`); // Clear saved tab state
     localStorage.removeItem("pubudu_user");
     setUser(null);
     setView("login");
