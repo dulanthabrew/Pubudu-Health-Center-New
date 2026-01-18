@@ -124,11 +124,23 @@ const PatientDashboard = ({ user, activeTab, onNavigate, onUpdateUser }) => {
   const renderOverview = () => {
     // Get top 2 upcoming appointments
     const upcoming = appointments
-      .filter(
-        (a) =>
-          new Date(String(a.date_time).replace(" ", "T")) > new Date() &&
-          a.status !== "Declined"
-      )
+      .filter((a) => {
+        const aptDate = new Date(String(a.date_time).replace(" ", "T"));
+        const now = new Date();
+        console.log(
+          `Checking Apt ID: ${a.id} | Date: ${
+            a.date_time
+          } | Parsed: ${aptDate} | Now: ${now} | Future? ${aptDate > now}`
+        );
+        return (
+          aptDate > now && a.status !== "Declined" && a.status !== "Cancelled"
+        );
+      })
+      .sort((a, b) => {
+        const dateA = new Date(String(a.date_time).replace(" ", "T"));
+        const dateB = new Date(String(b.date_time).replace(" ", "T"));
+        return dateA - dateB; // Ascending: Soonest first
+      })
       .slice(0, 2);
 
     // Get top 3 doctors

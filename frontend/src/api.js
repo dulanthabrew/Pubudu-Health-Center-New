@@ -24,10 +24,6 @@ export const api = {
   updateProfile: async (id, data) => {
     await axios.put(`${API_URL}/users/${id}`, data);
   },
-  getDoctorPatients: async (doctorId) => {
-    const res = await axios.get(`${API_URL}/doctor/${doctorId}/patients`);
-    return res.data;
-  },
 
   // Appointments
   getAppointments: async (userId, role) => {
@@ -46,6 +42,10 @@ export const api = {
   updateAppointmentStatus: async (id, status) => {
     await axios.put(`${API_URL}/appointments/${id}`, { status });
   },
+  cancelAppointment: async (id) => {
+    // Added cancel function
+    await axios.delete(`${API_URL}/appointments/${id}`);
+  },
 
   // Slots
   addSlot: async (doctorId, dateTime) => {
@@ -59,31 +59,9 @@ export const api = {
     await axios.delete(`${API_URL}/slots/${id}`);
   },
 
-  deleteSlot: async (id) => {
-    await axios.delete(`${API_URL}/slots/${id}`);
-  },
-
-  // Reports
-  getReports: async () => {
-    const res = await axios.get(`${API_URL}/reports`);
-    return res.data;
-  },
-  uploadReport: async (data) => {
-    const res = await axios.post(`${API_URL}/reports`, data, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return res.data;
-  },
-  deleteReport: async (id) => {
-    await axios.delete(`${API_URL}/reports/${id}`);
-  },
-
   // SMS Notification (Frontend Simulation)
   sendSMS: async (to, message) => {
     console.log(`[SMS SIMULATION] To: ${to} | Message: ${message}`);
-    alert(`SMS SENT:\nTo: ${to}\nMessage: ${message}`);
-    // In production, you would call: axios.post(`${API_URL}/send-sms`, { to, message });
+    // In production: axios.post(`${API_URL}/send-sms`, { to, message });
   },
 };

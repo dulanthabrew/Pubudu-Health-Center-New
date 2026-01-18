@@ -2,113 +2,23 @@ const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const axios = require("axios");
-const multer = require("multer");
-const path = require("path");
+const bcrypt = require("bcrypt"); // Import bcrypt
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
-app.use("/uploads", express.static("uploads")); // Serve uploaded files statically
-
-// Set up Multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({ storage });
-
-// Load environment variables from .env file
-require("dotenv").config();
-
-// ==========================================
-// CONFIGURATION (LOADED FROM .ENV)
-// ==========================================
-// We now access the variables using process.env
-const TEXT_LK_API_TOKEN = process.env.TEXT_LK_API_TOKEN;
-const TEXT_LK_SENDER_ID = process.env.TEXT_LK_SENDER_ID || "TextLK"; // Default to TextLK if not set
-const PORT = process.env.PORT || 5000;
-// ==========================================
-
-// --- SMS ROUTE (Text.lk) ---
-app.post("/api/send-sms", async (req, res) => {
-  const { to, message } = req.body;
-
-  console.log("Received SMS Request:", { to, message });
-
-  // 1. Validation: Ensure phone number exists
-  if (!to) {
-    console.error("Error: Missing 'to' phone number");
-    return res
-      .status(400)
-      .json({ success: false, error: "Missing phone number" });
-  }
-
-  // 2. Format Phone Number: Remove '+' if present
-  const formattedNumber = to.toString().replace("+", "");
-
-  try {
-    const response = await axios.post(
-      "https://app.text.lk/api/v3/sms/send",
-      {
-        recipient: formattedNumber,
-        sender_id: TEXT_LK_SENDER_ID,
-        type: "plain",
-        message: message,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${TEXT_LK_API_TOKEN}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      }
-    );
-
-    console.log("SMS Sent Successfully:", response.data);
-    res.json({ success: true, data: response.data });
-  } catch (err) {
-    const errorDetails = err.response ? err.response.data : err.message;
-    console.error("Text.lk API Error:", JSON.stringify(errorDetails, null, 2));
-
-    res.status(500).json({
-      success: false,
-      error: errorDetails,
-    });
-  }
-});
 
 // Database Connection
 const db = mysql.createConnection({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASS || "",
-  database: process.env.DB_NAME || "pubudu_health",
-  dateStrings: true, // Treats dates as strings to prevent timezone shifting
+  host: "localhost",
+  user: "root",
+  password: "",
+  database: "pubudu_health",
 });
 
 db.connect((err) => {
   if (err) console.error("Database connection failed:", err);
-  else {
-    console.log("MySQL Connected...");
-    // Create Reports Table if not exists
-    const sql = `CREATE TABLE IF NOT EXISTS reports (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      title VARCHAR(255) NOT NULL,
-      description TEXT,
-      file_path VARCHAR(255) NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`;
-    db.query(sql, (err, result) => {
-      if (err) console.error("Error creating reports table:", err);
-
-    });
-  }
+  else console.log("MySQL Connected...");
 });
 
 // --- AUTH ROUTES ---
@@ -116,33 +26,59 @@ db.connect((err) => {
 // Login
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
-  const sql = "SELECT * FROM users WHERE email = ? AND password = ?";
-  db.query(sql, [email, password], (err, result) => {
+  const sql = "SELECT * FROM users WHERE email = ?";
+
+  db.query(sql, [email], async (err, result) => {
     if (err) return res.status(500).json(err);
+
     if (result.length > 0) {
       const user = result[0];
-      delete user.password;
-      res.json(user);
+      // Compare hashed password
+      const match = await bcrypt.compare(password, user.password);
+
+      if (match) {
+        // Don't send password back
+        delete user.password;
+        res.json(user);
+      } else {
+        res.status(401).json({ message: "Invalid credentials" });
+      }
     } else {
-      res.status(401).json({ message: "Invalid credentials" });
+      res.status(401).json({ message: "User not found" });
     }
   });
 });
 
 // Register (Generic)
-app.post("/api/register", (req, res) => {
+app.post("/api/register", async (req, res) => {
   const { email, password, role, firstName, lastName, phone, specialty } =
     req.body;
-  const sql =
-    "INSERT INTO users (email, password, role, first_name, last_name, phone, specialty) VALUES (?, ?, ?, ?, ?, ?, ?)";
-  db.query(
-    sql,
-    [email, password, role, firstName, lastName, phone, specialty],
-    (err, result) => {
-      if (err) return res.status(500).json(err);
-      res.json({ id: result.insertId, ...req.body });
-    }
-  );
+
+  try {
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const sql =
+      "INSERT INTO users (email, password, role, first_name, last_name, phone, specialty) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+    db.query(
+      sql,
+      [email, hashedPassword, role, firstName, lastName, phone, specialty],
+      (err, result) => {
+        if (err) return res.status(500).json(err);
+        res.json({
+          id: result.insertId,
+          email,
+          role,
+          first_name: firstName,
+          last_name: lastName,
+        });
+      }
+    );
+  } catch (err) {
+    res.status(500).json({ error: "Hashing failed" });
+  }
 });
 
 // --- DATA ROUTES ---
@@ -179,22 +115,18 @@ app.put("/api/users/:id", (req, res) => {
 
 // --- APPOINTMENT ROUTES ---
 
-// Get Appointments (Updated to fetch Patient Phone)
+// Get Appointments (Filter by Doctor or Patient)
 app.get("/api/appointments", (req, res) => {
   const { userId, role } = req.query;
-  // JOIN with users table to get the patient's phone number
-  let sql = `
-    SELECT appointments.*, users.phone AS patient_phone 
-    FROM appointments 
-    JOIN users ON appointments.patient_id = users.id
-  `;
+  let sql = "SELECT * FROM appointments";
   let params = [];
 
+  // Allow fetching ALL if no filter provided (for Admin)
   if (role === "doctor") {
-    sql += " WHERE appointments.doctor_id = ?";
+    sql += " WHERE doctor_id = ?";
     params.push(userId);
   } else if (role === "patient") {
-    sql += " WHERE appointments.patient_id = ?";
+    sql += " WHERE patient_id = ?";
     params.push(userId);
   }
 
@@ -259,66 +191,6 @@ app.delete("/api/slots/:id", (req, res) => {
   });
 });
 
-// --- DOCTOR SPECIFIC ROUTES ---
-
-// Get Unique Patients for a Doctor
-app.get("/api/doctor/:id/patients", (req, res) => {
-  const doctorId = req.params.id;
-  const sql = `
-    SELECT DISTINCT u.id, u.first_name, u.last_name, u.email, u.phone 
-    FROM users u 
-    JOIN appointments a ON u.id = a.patient_id 
-    WHERE a.doctor_id = ?
-  `;
-  db.query(sql, [doctorId], (err, results) => {
-    if (err) return res.status(500).json(err);
-    res.json(results);
-  });
-});
-
-// --- REPORT ROUTES ---
-
-// Get All Reports
-app.get("/api/reports", (req, res) => {
-  const sql = "SELECT * FROM reports ORDER BY created_at DESC";
-  db.query(sql, (err, results) => {
-    if (err) return res.status(500).json(err);
-    res.json(results);
-  });
-});
-
-// Upload Report
-app.post("/api/reports", upload.single("file"), (req, res) => {
-  const { title, description } = req.body;
-  const filePath = req.file ? `/uploads/${req.file.filename}` : "";
-
-  if (!filePath) {
-    return res.status(400).json({ error: "No file uploaded" });
-  }
-
-  const sql =
-    "INSERT INTO reports (title, description, file_path) VALUES (?, ?, ?)";
-  db.query(sql, [title, description, filePath], (err, result) => {
-    if (err) return res.status(500).json(err);
-    res.json({
-      id: result.insertId,
-      title,
-      description,
-      file_path: filePath,
-      created_at: new Date(),
-    });
-  });
-});
-
-// Delete Report
-app.delete("/api/reports/:id", (req, res) => {
-  const sql = "DELETE FROM reports WHERE id = ?";
-  db.query(sql, [req.params.id], (err, result) => {
-    if (err) return res.status(500).json(err);
-    res.json({ message: "Report deleted" });
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(5000, () => {
+  console.log("Server running on port 5000");
 });
